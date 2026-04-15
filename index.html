@@ -22,6 +22,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .stat-val{font-size:26px;font-weight:600;color:#1a1a1a;line-height:1}
 .stat-val.red{color:#d63b3b}.stat-val.amber{color:#c47f00}.stat-val.green{color:#1a9e6f}
+.unpaid-total-box{margin:0 14px 10px;padding:14px 18px;background:#fde8e8;border-radius:10px;border:1px solid #f0a0a0;display:flex;justify-content:space-between;align-items:center}
+.unpaid-total-lbl{font-size:13px;color:#a03030;font-weight:500}
+.unpaid-total-val{font-size:22px;font-weight:700;color:#d63b3b}
 .alert{margin:0 14px 8px;padding:10px 13px;background:#fff8e6;border:1px solid #f0c040;border-radius:10px;font-size:13px;color:#8a6000;display:none}
 .alert.on{display:block}
 .sec-hdr{padding:12px 14px 7px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
@@ -164,6 +167,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="stat"><div class="stat-lbl">Totalt</div><div class="stat-val" id="st-total">0</div></div>
       <div class="stat"><div class="stat-lbl">Ubetalt</div><div class="stat-val red" id="st-unpaid">0</div></div>
       <div class="stat"><div class="stat-lbl">Tid igjen</div><div class="stat-val amber" id="st-soon">0</div></div>
+    </div>
+    <div class="unpaid-total-box">
+      <div class="unpaid-total-lbl">Total ubetalt beløp</div>
+      <div class="unpaid-total-val" id="st-unpaid-amt">0 kr</div>
     </div>
     <div class="alert" id="alert-box"></div>
     <div class="sec-hdr">Ubetalte fakturaer</div>
@@ -389,6 +396,7 @@ function render(){
   document.getElementById('st-total').textContent=data.length;
   document.getElementById('st-unpaid').textContent=unpaid.length;
   document.getElementById('st-soon').textContent=soon.length;
+  document.getElementById('st-unpaid-amt').textContent=famt(unpaid.reduce((s,i)=>s+remaining(i),0));
   const ab=document.getElementById('alert-box');
   if(week.length>0){ab.textContent=week.length+' faktura'+(week.length>1?'er':'')+' forfaller denne uken';ab.classList.add('on');}else ab.classList.remove('on');
   const sorted=arr=>arr.slice().sort((a,b)=>new Date(a.due)-new Date(b.due));
