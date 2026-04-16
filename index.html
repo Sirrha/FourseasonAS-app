@@ -13,6 +13,12 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #ccc;background:#fff;transition:background .15s}
+.pin-dot.filled{background:#003d35;border-color:#003d35}
+.pin-dot.error{background:#d63b3b;border-color:#d63b3b}
+.pin-btn{padding:0;width:72px;height:72px;border-radius:50%;border:1px solid #e0e0e0;background:#fff;font-size:24px;font-weight:500;cursor:pointer;font-family:inherit;color:#1a1a1a;transition:background .1s}
+.pin-btn:active{background:#f0f0f0}
+.pin-del{font-size:20px}
 .app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-bottom:80px;box-shadow:0 0 40px rgba(0,0,0,0.08)}
 .header{padding:14px 18px 12px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;background:#fff;position:sticky;top:0;z-index:50}
 .header img{height:34px;width:auto}
@@ -152,7 +158,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </style>
 </head>
 <body>
-<div class="app">
+<div id="pin-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#fff;max-width:480px;margin:0 auto;padding:40px 20px">
+  <img id="pin-logo" style="height:48px;width:auto;margin-bottom:32px" alt="4 Seasons"/>
+  <div style="font-size:14px;color:#888;margin-bottom:24px;text-transform:uppercase;letter-spacing:.1em" id="pin-label">Skriv inn PIN</div>
+  <div style="display:flex;gap:12px;margin-bottom:32px" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:240px">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <div></div>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn pin-del" onclick="pinDel()">⌫</button>
+  </div>
+  <div id="pin-setup-info" style="display:none;margin-top:24px;font-size:13px;color:#888;text-align:center;line-height:1.6"></div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
   <div class="header">
     <img id="logo-img" alt="4 Seasons"/>
     <div class="header-title" id="ptitle">Oversikt</div>
@@ -245,6 +277,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </nav>
 </div>
 
+</div>
+
 <div class="ovl" id="detail">
   <div class="ovl-hdr"><button class="back" onclick="closeDetail()">← Tilbake</button><span class="ovl-ttl">Faktura</span></div>
   <div class="ovl-body" id="det-body"></div>
@@ -299,6 +333,77 @@ async function importOldData(){
     alert('Import fullført! '+data.length+' fakturaer hentet.');
   }catch(e){alert('Noe gikk galt. Prøv igjen.');}
 }
+const PIN_KEY='fs-pin-v1';let pinEntry='';let pinMode='check';let pinFirst='';
+
+function initPin(){
+  document.getElementById('pin-logo').src=document.getElementById('logo-img').src;
+  const saved=localStorage.getItem(PIN_KEY);
+  if(!saved){
+    pinMode='setup1';
+    document.getElementById('pin-label').textContent='Sett opp ny PIN';
+    document.getElementById('pin-setup-info').style.display='block';
+    document.getElementById('pin-setup-info').textContent='Velg en 4-sifret PIN-kode for å beskytte appen.';
+  } else {
+    pinMode='check';
+    document.getElementById('pin-label').textContent='Skriv inn PIN';
+  }
+}
+
+function pinPress(n){
+  if(pinEntry.length>=4)return;
+  pinEntry+=n;
+  updateDots();
+  if(pinEntry.length===4){
+    setTimeout(()=>handlePin(),150);
+  }
+}
+
+function pinDel(){
+  pinEntry=pinEntry.slice(0,-1);
+  updateDots();
+}
+
+function updateDots(state){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('d'+i);
+    d.className='pin-dot';
+    if(i<pinEntry.length)d.classList.add(state||'filled');
+  }
+}
+
+function handlePin(){
+  if(pinMode==='check'){
+    const saved=localStorage.getItem(PIN_KEY);
+    if(pinEntry===saved){
+      document.getElementById('pin-screen').style.display='none';
+      document.getElementById('main-app').style.display='block';
+      load();
+    } else {
+      updateDots('error');
+      document.getElementById('pin-label').textContent='Feil PIN — prøv igjen';
+      setTimeout(()=>{pinEntry='';updateDots();document.getElementById('pin-label').textContent='Skriv inn PIN';},800);
+    }
+  } else if(pinMode==='setup1'){
+    pinFirst=pinEntry;
+    pinEntry='';
+    updateDots();
+    pinMode='setup2';
+    document.getElementById('pin-label').textContent='Bekreft PIN';
+    document.getElementById('pin-setup-info').textContent='Skriv inn PIN-koden en gang til for å bekrefte.';
+  } else if(pinMode==='setup2'){
+    if(pinEntry===pinFirst){
+      localStorage.setItem(PIN_KEY,pinEntry);
+      document.getElementById('pin-screen').style.display='none';
+      document.getElementById('main-app').style.display='block';
+      load();
+    } else {
+      updateDots('error');
+      document.getElementById('pin-label').textContent='PIN stemmer ikke — start på nytt';
+      setTimeout(()=>{pinEntry='';pinFirst='';updateDots();pinMode='setup1';document.getElementById('pin-label').textContent='Sett opp ny PIN';document.getElementById('pin-setup-info').textContent='Velg en 4-sifret PIN-kode.';},1000);
+    }
+  }
+}
+
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.add('on');});
 window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').classList.remove('on');deferredPrompt=null;});
 async function installApp(){if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('install-banner').classList.remove('on');}}
@@ -556,7 +661,7 @@ function go(name){
   if(name==='eco')renderEco();
 }
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
-load();
+initPin();
 </script>
 </body>
 </html>
